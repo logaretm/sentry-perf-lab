@@ -10,6 +10,19 @@ import { existsSync, readFileSync } from 'node:fs';
 import net from 'node:net';
 import { resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import * as Sentry from '@sentry/node';
+
+// Send results to Sentry as metrics when a DSN is configured. No-op without one,
+// so local runs stay offline unless you opt in via SENTRY_DSN.
+const SENTRY_ON = Boolean(process.env.SENTRY_DSN);
+if (SENTRY_ON) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.SENTRY_ENV || 'perf-lab',
+    release: process.env.SENTRY_RELEASE,
+    tracesSampleRate: 0,
+  });
+}
 
 // Spawn the vite binary directly (not via npm/npx) so killing the PID actually
 // stops the server — `npm run` would orphan its vite child and leak the port.
@@ -67,12 +80,26 @@ try {
       tbts.push(Math.round(lhr.audits['total-blocking-time'].numericValue));
     }
     const mLcp = median(lcps);
+    const mScore = median(scores);
+    const mTbt = median(tbts);
     if (baseLcp == null) baseLcp = mLcp;
+    if (SENTRY_ON) {
+      // One metric series per scenario so each config charts independently and
+      // can be compared side by side. `config` attribute kept for filtering too.
+      // Sentry normalizes `-` to `_` in metric names, so emit the normalized form
+      // directly — keeps the queryable name identical to what's written here.
+      const key = mode.replace(/-/g, '_');
+      const attributes = { config: mode };
+      Sentry.metrics.distribution(`lighthouse.${key}.lcp`, mLcp, { unit: 'millisecond', attributes });
+      Sentry.metrics.distribution(`lighthouse.${key}.tbt`, mTbt, { unit: 'millisecond', attributes });
+      Sentry.metrics.gauge(`lighthouse.${key}.performance_score`, mScore, { attributes });
+    }
     console.log(
-      mode.padEnd(18) + `${mLcp}ms`.padStart(9) + String(median(scores)).padStart(8) + `${median(tbts)}ms`.padStart(8) +
+      mode.padEnd(18) + `${mLcp}ms`.padStart(9) + String(mScore).padStart(8) + `${mTbt}ms`.padStart(8) +
       (mLcp === baseLcp ? '   —' : `   +${mLcp - baseLcp}ms`),
     );
   }
 } finally {
   servers.forEach(s => s.kill());
+  if (SENTRY_ON) await Sentry.flush(5000);
 }
