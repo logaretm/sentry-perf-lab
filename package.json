@@ -6,11 +6,11 @@
   "description": "A/B lab measuring @sentry/react load overhead on a realistic, request-heavy profile page",
   "scripts": {
     "gen-assets": "node gen-assets.mjs",
-    "build:no-sentry": "npm run gen-assets && vite build --mode no-sentry --outDir dist/no-sentry --emptyOutDir",
-    "build:errors-only": "npm run gen-assets && vite build --mode errors-only --outDir dist/errors-only --emptyOutDir",
-    "build:tracing": "npm run gen-assets && vite build --mode tracing --outDir dist/tracing --emptyOutDir",
-    "build:tracing-replay": "npm run gen-assets && vite build --mode tracing-replay --outDir dist/tracing-replay --emptyOutDir",
-    "build:matrix": "npm run build:no-sentry && npm run build:errors-only && npm run build:tracing && npm run build:tracing-replay",
+    "build:no-sentry": "pnpm run gen-assets && vite build --mode no-sentry --outDir dist/no-sentry --emptyOutDir",
+    "build:errors-only": "pnpm run gen-assets && vite build --mode errors-only --outDir dist/errors-only --emptyOutDir",
+    "build:tracing": "pnpm run gen-assets && vite build --mode tracing --outDir dist/tracing --emptyOutDir",
+    "build:tracing-replay": "pnpm run gen-assets && vite build --mode tracing-replay --outDir dist/tracing-replay --emptyOutDir",
+    "build:matrix": "pnpm run build:no-sentry && pnpm run build:errors-only && pnpm run build:tracing && pnpm run build:tracing-replay",
     "matrix": "node matrix.mjs",
     "analyze": "node analyze.mjs",
     "lighthouse": "node lighthouse.mjs",
@@ -29,10 +29,11 @@
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.7.0",
-    "lighthouse": "^12.8.2",
+    "lighthouse": "^12.8.0",
     "playwright": "^1.61.0",
     "source-map-explorer": "^2.5.3",
     "typescript": "~5.4.0",
     "vite": "^5.4.0"
-  }
+  },
+  "packageManager": "pnpm@10.34.4"
 }

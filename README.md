@@ -21,27 +21,29 @@ that config — so bundle deltas are real, not runtime flags.
 
 ## Run it
 
+Requires [pnpm](https://pnpm.io) 10 (pinned via `packageManager`).
+
 ```bash
-npm install
-npm run build:matrix      # builds all four configs (production, minified, sourcemaps on)
+pnpm install
+pnpm build:matrix         # builds all four configs (production, minified, sourcemaps on)
 ```
 
 Then any of the three reports:
 
 ```bash
 # 1. Bundle layering — deterministic, zero-variance detector of per-layer cost
-npm run matrix
+pnpm matrix
 
 # 2. Bundle delta + WHERE Sentry lives (minified bytes, from source maps)
-#    + optional Lighthouse scripting join:  -- --lh <lighthouse.json>
-npm run analyze                                   # no-sentry vs tracing-replay (default)
+#    + optional Lighthouse scripting join:  --lh <lighthouse.json>
+pnpm analyze                                      # no-sentry vs tracing-replay (default)
 node analyze.mjs --base dist/no-sentry --sentry dist/errors-only   # any pair
 
 # 3. Per-config LCP/score/TBT — REAL DevTools throttling (Slow 4G + 4x CPU), median of 5
-npm run lighthouse                                # use -- --runs 20 for tighter CIs
+pnpm lighthouse                                   # use --runs 20 for tighter CIs
 ```
 
-`npm run bench` is an alternative runtime runner (Playwright + CDP, FCP/LCP/longtask via
+`pnpm bench` is an alternative runtime runner (Playwright + CDP, FCP/LCP/longtask via
 the User Timing API) across CPU-only and Slow-4G profiles.
 
 ## Why this measures correctly
