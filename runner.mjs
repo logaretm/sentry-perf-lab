@@ -20,9 +20,10 @@ const WARMUP = Number(arg('warmup', 3));
 const WHICH = arg('profile', 'all');
 
 const MODES = [
-  { key: 'baseline', port: 4190 },
-  { key: 'sentry', port: 4191 },
-  { key: 'sentry-eager', port: 4192 },
+  { key: 'no-sentry', port: 4190 },
+  { key: 'errors-only', port: 4191 },
+  { key: 'tracing', port: 4192 },
+  { key: 'tracing-replay', port: 4193 },
 ];
 
 // Decimal-Mbps Slow 4G: 1.6 down / 0.75 up / 150ms RTT (bytes/s, ms).

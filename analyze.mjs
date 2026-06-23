@@ -12,8 +12,8 @@ import { basename, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 ? process.argv[i + 1] : d; };
-const BASE = arg('base', 'dist/baseline');
-const SENTRY = arg('sentry', 'dist/sentry');
+const BASE = arg('base', 'dist/no-sentry');
+const SENTRY = arg('sentry', 'dist/tracing-replay');
 const LH = arg('lh', null);
 
 const kb = b => (b / 1024).toFixed(1) + 'KB';

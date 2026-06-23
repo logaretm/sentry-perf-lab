@@ -1,40 +1,53 @@
-# Profile-page Sentry overhead lab
+# Sentry browser SDK perf isolation lab
 
-A/B benchmark for the **load-time cost of `@sentry/react`** on a realistic,
-request-heavy profile page (banner + avatar + bio + tabs + 100-post feed with
-real lazy-loaded images, plus a 17-call API burst over `fetch` + `XHR` on mount).
+An A/B benchmark for the **load-time cost of the Sentry browser SDK** on a realistic,
+client-rendered profile page (banner + avatar + bio + tabs + 100-post feed with real
+lazy-loaded images, plus a 17-call API burst over `fetch` + `XHR` on mount).
 
-Uses the **published `@sentry/react` from npm** (pinned to `10.55.0` — bump in
-`package.json` to test another version) and the customer's exact logged-out init.
+Pinned to `@sentry/react@10.58.0` (change the one line in `package.json` to test another
+version or a local tarball).
 
-## Modes
+## Config matrix
 
-| Mode | What it is |
+Each mode is a separate production build where the SDK is tree-shaken down to exactly
+that config — so bundle deltas are real, not runtime flags.
+
+| Mode | Sentry config |
 |---|---|
-| `baseline` | No Sentry (tree-shaken out entirely) |
-| `sentry` | Customer's config: errors-only at init (`browserApiErrorsIntegration({eventTarget:false})` + `thirdPartyErrorFilterIntegration`), tracing + `breadcrumbs({fetch,history})` **deferred** to `requestIdleCallback` |
-| `sentry-eager` | Same, but tracing + breadcrumbs installed **in `init()`** — fetch/XHR wrapped during the load burst (upper bound) |
+| `no-sentry` | SDK fully tree-shaken out (baseline) |
+| `errors-only` | `init()` + `browserApiErrorsIntegration` + `thirdPartyErrorFilterIntegration` |
+| `tracing` | errors-only + `browserTracingIntegration` |
+| `tracing-replay` | tracing + `replayIntegration` |
 
-## Run
+## Run it
 
 ```bash
 npm install
-npm run build:all          # generates assets + builds all three modes
-npm run preview:baseline   # :4190
-npm run preview:sentry     # :4191
-npm run preview:sentry-eager  # :4192
+npm run build:matrix      # builds all four configs (production, minified, sourcemaps on)
 ```
 
-## Measure
+Then any of the three reports:
 
-The page installs `PerformanceObserver`s (FCP/LCP/longtask) in `index.html` and
-`performance.measure`s for `sentry.init`, `sentry.defer`, and `api.batch`. Read
-them from a throttled headless Chrome (DevTools 4× CPU / Slow 4G, cache off) via:
+```bash
+# 1. Bundle layering — deterministic, zero-variance detector of per-layer cost
+npm run matrix
 
-```js
-performance.getEntriesByName('sentry.init')[0].duration   // init exec
-performance.getEntriesByName('api.batch')[0].duration      // the API burst
-window.__perf                                              // { fcp, lcp, longTasks }
+# 2. Bundle delta + WHERE Sentry lives (minified bytes, from source maps)
+#    + optional Lighthouse scripting join:  -- --lh <lighthouse.json>
+npm run analyze                                   # no-sentry vs tracing-replay (default)
+node analyze.mjs --base dist/no-sentry --sentry dist/errors-only   # any pair
+
+# 3. Per-config LCP/score/TBT — REAL DevTools throttling (Slow 4G + 4x CPU), median of 5
+npm run lighthouse                                # use -- --runs 20 for tighter CIs
 ```
 
-A/B the deltas across modes. Report median of N≥20 runs; never a single number.
+`npm run bench` is an alternative runtime runner (Playwright + CDP, FCP/LCP/longtask via
+the User Timing API) across CPU-only and Slow-4G profiles.
+
+## Why this measures correctly
+
+- **Build-time isolation** — the SDK is compiled in or fully out; the A/B delta *is* Sentry's cost.
+- **Real (DevTools) throttling, not lantern** — metrics are measured, not modeled, so there are
+  no impossible deltas. Run multiple times and take the median.
+- **Minified-byte attribution** — `analyze.mjs` decodes the source-map mappings and cross-checks
+  against the A/B delta, so "where is Sentry" reflects shipped bytes, not comment-heavy source.
