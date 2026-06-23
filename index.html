@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile Perf Lab</title>
+    <script>
+      // Ground-truth perf capture. Installed before any app code so we never miss
+      // an entry. Read back later via performance.getEntriesByName / window.__perf.
+      window.__perf = { fcp: null, lcp: null, longTasks: [] };
+      try {
+        new PerformanceObserver(list => {
+          for (const e of list.getEntries()) {
+            if (e.name === 'first-contentful-paint') window.__perf.fcp = e.startTime;
+          }
+        }).observe({ type: 'paint', buffered: true });
+        new PerformanceObserver(list => {
+          const es = list.getEntries();
+          window.__perf.lcp = es[es.length - 1].startTime; // last = final LCP
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+        new PerformanceObserver(list => {
+          for (const e of list.getEntries()) {
+            window.__perf.longTasks.push({ start: Math.round(e.startTime), dur: Math.round(e.duration) });
+          }
+        }).observe({ type: 'longtask', buffered: true });
+      } catch (_) {}
+    </script>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font: 15px/1.4 -apple-system, system-ui, sans-serif; color: #0f1419; background: #fff; }
+      #root { max-width: 600px; margin: 0 auto; border-left: 1px solid #eff3f4; border-right: 1px solid #eff3f4; min-height: 100vh; }
+      .banner { width: 100%; height: 200px; display: block; }
+      .avatar { width: 134px; height: 134px; border-radius: 50%; border: 4px solid #fff; margin: -67px 0 0 16px; display: block; }
+      .ident { padding: 12px 16px; }
+      .ident h1 { font-size: 20px; }
+      .ident .handle { color: #536471; }
+      .ident .bio { margin: 12px 0; }
+      .stats { display: flex; gap: 20px; color: #536471; }
+      .stats b { color: #0f1419; }
+      .tabs { display: flex; border-bottom: 1px solid #eff3f4; margin-top: 12px; }
+      .tabs div { flex: 1; text-align: center; padding: 16px; color: #536471; cursor: pointer; }
+      .tabs div.active { color: #0f1419; font-weight: 700; border-bottom: 3px solid #1d9bf0; }
+      .post { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #eff3f4; }
+      .post .pa { width: 40px; height: 40px; border-radius: 50%; flex: 0 0 40px; }
+      .post .body { flex: 1; min-width: 0; }
+      .post .meta { color: #536471; }
+      .post .meta b { color: #0f1419; }
+      .post .text { margin: 4px 0; }
+      .post .media { width: 100%; height: 260px; border-radius: 16px; margin-top: 8px; }
+      .post .actions { display: flex; justify-content: space-between; max-width: 420px; color: #536471; margin-top: 8px; }
+      .post .actions span { cursor: pointer; }
+      .follow { float: right; background: #0f1419; color: #fff; border: none; border-radius: 999px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
