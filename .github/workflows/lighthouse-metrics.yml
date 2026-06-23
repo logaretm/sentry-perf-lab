@@ -1,0 +1,39 @@
+name: Lighthouse → Sentry metrics
+
+# Runs the perf matrix hourly and ships per-scenario LCP/TBT/score to Sentry.
+# Needs a SENTRY_DSN repo secret; without it the run still builds + measures but
+# Sentry.metrics is a no-op (see lighthouse.mjs).
+on:
+  schedule:
+    - cron: '0 * * * *' # top of every hour (UTC)
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+concurrency:
+  group: lighthouse-metrics
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # version comes from package.json "packageManager"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build:matrix
+
+      # ubuntu-latest ships Google Chrome; lighthouse.mjs launches it headless
+      # with --no-sandbox. --runs 3 keeps the hourly job well under the timeout.
+      - run: pnpm lighthouse --runs 3
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_ENV: ci
+          SENTRY_RELEASE: ${{ github.sha }}
