@@ -31,8 +31,9 @@ jobs:
       - run: pnpm build:matrix
 
       # ubuntu-latest ships Google Chrome; lighthouse.mjs launches it headless
-      # with --no-sandbox. --runs 3 keeps the hourly job well under the timeout.
-      - run: pnpm lighthouse --runs 3
+      # with --no-sandbox. --runs 5 (20 passes) for tighter medians, still well
+      # under the timeout.
+      - run: pnpm lighthouse --runs 5
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_ENV: ci
